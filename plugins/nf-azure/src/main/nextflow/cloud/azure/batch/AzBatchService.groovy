@@ -329,7 +329,8 @@ class AzBatchService implements Closeable {
         CloudJob job = apply(() -> client.jobOperations().getJob(key.jobId))
         // TODO: add a check for retention time
         // Client is BatchClient
-        JobReleaseTask  jrt = job.releaseTask()
+        JobReleaseTask  jrt = new JobReleaseTask()
+        job.JobReleaseTask = jrt
 
         final poolId = job.poolInfo().poolId()
         final AzVmPoolSpec spec = allPools.get(poolId)
