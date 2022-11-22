@@ -51,6 +51,7 @@ import com.microsoft.azure.batch.protocol.models.PoolState
 import com.microsoft.azure.batch.protocol.models.ResourceFile
 import com.microsoft.azure.batch.protocol.models.StartTask
 import com.microsoft.azure.batch.protocol.models.TaskAddParameter
+import com.microsoft.azure.batch.protocol.models.JobReleaseTask
 import com.microsoft.azure.batch.protocol.models.TaskContainerSettings
 import com.microsoft.azure.batch.protocol.models.TaskSchedulingPolicy
 import com.microsoft.azure.batch.protocol.models.UserIdentity
@@ -326,6 +327,10 @@ class AzBatchService implements Closeable {
         if( !key || !key.jobId )
             throw new IllegalArgumentException("Missing Azure Batch job id")
         CloudJob job = apply(() -> client.jobOperations().getJob(key.jobId))
+        // TODO: add a check for retention time
+        // Client is BatchClient
+        JobReleaseTask  jrt = job.releaseTask()
+
         final poolId = job.poolInfo().poolId()
         final AzVmPoolSpec spec = allPools.get(poolId)
         if( !spec )
@@ -724,14 +729,14 @@ class AzBatchService implements Closeable {
             // Get pool lifetime since creation.
             lifespan = time() - time("{{poolCreationTime}}");
             interval = TimeInterval_Minute * {{scaleInterval}};
-            
+
             // Compute the target nodes based on pending tasks.
             // $PendingTasks == The sum of $ActiveTasks and $RunningTasks
             $samples = $PendingTasks.GetSamplePercent(interval);
             $tasks = $samples < 70 ? max(0, $PendingTasks.GetSample(1)) : max( $PendingTasks.GetSample(1), avg($PendingTasks.GetSample(interval)));
             $targetVMs = $tasks > 0 ? $tasks : max(0, $TargetDedicatedNodes/2);
             targetPoolSize = max(0, min($targetVMs, {{maxVmCount}}));
-            
+
             // For first interval deploy 1 node, for other intervals scale up/down as per tasks.
             $TargetDedicatedNodes = lifespan < interval ? {{vmCount}} : targetPoolSize;
             $NodeDeallocationOption = taskcompletion;
